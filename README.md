@@ -12,8 +12,8 @@
 
 1. **Clone the repo:**
 ```bash
-   git clone https://github.com/LadyP13/------------.git
-   cd ------------
+   git clone https://github.com/LadyP13/partnership-world-v1.git
+   cd partnership-world-v1
 ```
 
 2. **Install dependencies:**
