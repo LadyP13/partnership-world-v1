@@ -1,0 +1,86 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS / OS junk
+.DS_Store
+Thumbs.db
+*.pem
+
+# local env files & secrets — NEVER commit API keys or tokens
+.env
+.env.*
+.env*.local
+*.env
+app/OAI KEY
+**/OAI KEY
+*secret*
+*credentials*
+workshop/data/builder_token.txt
+workshop/data/*.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+workshop/venv/
+workshop/venc/
+venv/
+.venv/
+env/
+ENV/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# typescript
+*.tsbuildinfo
+
+app-example
+
+# generated native folders
+/ios
+/android
+
+# IDE / editor (keep shared VS Code settings if you want; ignore private)
+.idea/
+*.swp
+*.swo
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local runtime / scratch
+*.tmp
+*.temp
+.cache/

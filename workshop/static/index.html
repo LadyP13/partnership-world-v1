@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PartnershipWorld Workshop</title>
+  <style>
+    :root {
+      --bg: #120a24;
+      --card: #1a1325;
+      --teal: #7df5d8;
+      --mint: #4adeb0;
+      --coral: #ff8c69;
+      --text: #f0e6ff;
+      --muted: #b8a0d8;
+      --human: rgba(199, 21, 133, 0.85);
+      --ie: rgba(0, 139, 139, 0.85);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      overflow: hidden; /* page itself never scrolls — panes decide who scrolls */
+    }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .screen { display: none; height: 100%; min-height: 0; }
+    .screen.active {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden; /* shell stays put; children manage their own scroll */
+    }
+    .auth-wrap {
+      flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(125, 245, 216, 0.2);
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 400px;
+    }
+    h1 { color: var(--teal); font-size: 1.6rem; margin-bottom: 8px; }
+    .subtitle { color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
+    label { display: block; color: var(--muted); font-size: 0.85rem; margin-bottom: 6px; }
+    input, select {
+      width: 100%;
+      background: #2a1f3a;
+      border: 1px solid #3a2a4a;
+      border-radius: 10px;
+      padding: 12px;
+      color: var(--text);
+      margin-bottom: 16px;
+      font-size: 1rem;
+    }
+    button {
+      width: 100%;
+      background: var(--mint);
+      color: var(--bg);
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: transparent;
+      color: var(--teal);
+      border: 1px solid var(--teal);
+      margin-top: 12px;
+    }
+    .error { color: #f87171; font-size: 0.9rem; margin-bottom: 12px; }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(125, 245, 216, 0.15);
+      background: rgba(26, 19, 37, 0.95);
+      flex-shrink: 0; /* stay pinned at top — never squashed or scrolled away */
+    }
+    .room-title { font-size: 1.1rem; font-weight: 600; }
+    .status { color: var(--mint); font-size: 0.85rem; }
+    .chat {
+      flex: 1;
+      min-height: 0; /* critical: let this flex child shrink so overflow-y can work */
+      overflow-y: auto; /* ONLY the message list scrolls */
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .bubble {
+      max-width: 78%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+    .bubble.human { background: var(--human); align-self: flex-start; }
+    .bubble.ie { background: var(--ie); align-self: flex-end; }
+    .speaker { font-size: 0.7rem; opacity: 0.8; margin-bottom: 4px; font-weight: 600; }
+    .input-row {
+      display: flex;
+      gap: 10px;
+      padding: 16px 20px;
+      border-top: 1px solid rgba(125, 245, 216, 0.15);
+      background: var(--card);
+      flex-shrink: 0; /* composer stays put — never scrolls away with messages */
+    }
+    .input-row input { margin: 0; flex: 1; }
+    .input-row button { width: auto; padding: 12px 20px; }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 12px 20px;
+      flex-wrap: wrap;
+      flex-shrink: 0; /* tab bar stays pinned under header */
+    }
+    .tab {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid #3a2a4a;
+      width: auto;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+    }
+    .tab.active { border-color: var(--teal); color: var(--teal); }
+    .settings-panel { padding: 20px; flex: 1; overflow-y: auto; }
+    .settings-panel h2 { color: var(--teal); margin-bottom: 16px; font-size: 1.1rem; }
+    .hint { color: var(--muted); font-size: 0.85rem; margin-top: -8px; margin-bottom: 16px; }
+    .tool-activity {
+      align-self: center;
+      background: rgba(125, 245, 216, 0.08);
+      border: 1px solid rgba(125, 245, 216, 0.25);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      color: var(--teal);
+      max-width: 90%;
+    }
+    .perm-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(125, 245, 216, 0.1);
+    }
+    .perm-row label { margin: 0; color: var(--text); font-size: 0.95rem; }
+    .perm-row input[type="checkbox"] { width: auto; margin: 0; transform: scale(1.2); }
+
+    /* —— Twin Workshop split-screen ——
+       Layout idea:
+         page shell  = fixed to viewport (no scroll)
+         twin-panel  = fills remaining height under header/tabs
+         left column = buttons pinned (flex-shrink:0) + stage fills rest (no scroll)
+         right column = title + input pinned; ONLY .chat scrolls
+    */
+    #twin-panel {
+      display: none;
+      flex: 1;
+      min-height: 0; /* allow panel to shrink inside home-screen flex */
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #twin-panel.active {
+      display: flex;
+    }
+    .twin-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 16px;
+      background: rgba(125, 245, 216, 0.08);
+      border-bottom: 1px solid rgba(125, 245, 216, 0.2);
+      font-size: 0.9rem;
+      color: var(--muted);
+      flex-shrink: 0; /* banner always visible at top of twin panel */
+    }
+    .twin-banner strong { color: var(--teal); }
+    .twin-split {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      overflow: hidden; /* split itself never scrolls as a unit */
+    }
+    .twin-left {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      border-right: 1px solid rgba(125, 245, 216, 0.15);
+      background: #0e0818;
+      overflow: hidden; /* camera/partner stage is static — no page scroll here */
+    }
+    .twin-right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden; /* only the .chat child inside scrolls */
+    }
+    .twin-view-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(125, 245, 216, 0.12);
+      flex-shrink: 0; /* My Camera / Partner Twin stay put */
+    }
+    .twin-view-tabs button {
+      width: auto;
+      flex: 1;
+      padding: 10px 12px;
+      font-size: 0.85rem;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid #3a2a4a;
+    }
+    .twin-view-tabs button.active {
+      border-color: var(--teal);
+      color: var(--teal);
+      background: rgba(125, 245, 216, 0.08);
+    }
+    .twin-stage {
+      flex: 1;
+      position: relative;
+      min-height: 0; /* fills leftover left-column height, nothing more */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden; /* clip camera so it never pushes the page taller */
+    }
+    .twin-stage-pane {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      /* camera pane: no padding so video fills stage edge-to-edge */
+      padding: 0;
+      overflow: hidden;
+    }
+    .twin-stage-pane.visible { display: flex; }
+    /* partner pane keeps a bit of breathing room */
+    #pane-partner.twin-stage-pane { padding: 20px; overflow: auto; }
+    #twin-camera-video {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain; /* fit inside stage without exploding layout (was cover = "massive") */
+      background: #000;
+      border-radius: 0;
+    }
+    .camera-hint {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(18, 10, 36, 0.75);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+    .partner-build {
+      width: 100%;
+      max-width: 420px;
+      background: linear-gradient(160deg, #2a1f3a 0%, #1a1325 60%, #0f1a22 100%);
+      border: 1px solid rgba(125, 245, 216, 0.25);
+      border-radius: 16px;
+      padding: 28px 24px;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(125, 245, 216, 0.08);
+    }
+    .partner-build h3 {
+      color: var(--teal);
+      margin-bottom: 12px;
+      font-size: 1.15rem;
+    }
+    .partner-build p {
+      color: var(--muted);
+      line-height: 1.55;
+      margin-bottom: 10px;
+    }
+    .build-pulse {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 18px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #ffe9a8, #7df5d8 45%, #4a2a8a 100%);
+      box-shadow: 0 0 28px rgba(125, 245, 216, 0.45);
+      animation: twinPulse 2.4s ease-in-out infinite;
+    }
+    @keyframes twinPulse {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.08); opacity: 1; }
+    }
+    .build-log {
+      margin-top: 16px;
+      text-align: left;
+      font-size: 0.85rem;
+      color: var(--text);
+      background: rgba(0,0,0,0.25);
+      border-radius: 10px;
+      padding: 12px 14px;
+      max-height: 140px;
+      overflow-y: auto;
+    }
+    .build-log div { margin-bottom: 6px; opacity: 0.9; }
+    .twin-right .chat {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto; /* the one scrollable region in Twin mode */
+    }
+    .twin-right .room-title-inline {
+      padding: 12px 16px 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .twin-right .input-row {
+      flex-shrink: 0;
+    }
+    .twin-toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(26, 19, 37, 0.95);
+      border: 1px solid var(--teal);
+      color: var(--teal);
+      padding: 12px 20px;
+      border-radius: 12px;
+      z-index: 50;
+      font-weight: 600;
+      display: none;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .twin-toast.show { display: block; animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+    @media (max-width: 800px) {
+      .twin-split { flex-direction: column; }
+      .twin-left {
+        border-right: none;
+        border-bottom: 1px solid rgba(125, 245, 216, 0.15);
+        flex: 0 0 42vh; /* fixed height slice so camera stays static on small screens */
+        min-height: 0;
+        max-height: 42vh;
+      }
+      .twin-right {
+        flex: 1;
+        min-height: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="twin-toast" class="twin-toast">🌟 Twin Workshop opened from your phone</div>
+
+  <div id="auth-screen" class="screen active">
+    <div class="auth-wrap">
+      <div class="card">
+        <h1>🏠 Workshop</h1>
+        <p class="subtitle">The laptop half of PartnershipWorld. Same login as your phone — same conversation, same home.</p>
+        <div id="auth-error" class="error" hidden></div>
+        <label>Username</label>
+        <input id="username" autocomplete="username" />
+        <label>Password</label>
+        <input id="password" type="password" autocomplete="current-password" />
+        <button onclick="login()">Come Home</button>
+        <button class="secondary" onclick="register()">Create Account</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="home-screen" class="screen">
+    <header>
+      <div>
+        <div class="room-title">Home Workshop</div>
+        <div class="status" id="connection-status">Connected</div>
+      </div>
+      <button class="tab" style="width:auto" onclick="logout()">Logout</button>
+    </header>
+    <div class="tabs">
+      <button class="tab active" id="tab-chat" onclick="showTab('chat')">Chat</button>
+      <button class="tab" id="tab-twin" onclick="showTab('twin')">🌟 Twin Workshop</button>
+      <button class="tab" id="tab-powers" onclick="showTab('powers')">Powers</button>
+      <button class="tab" id="tab-settings" onclick="showTab('settings')">AI Settings</button>
+    </div>
+
+    <div id="chat-panel" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+      <div class="chat" id="messages"></div>
+      <div class="input-row">
+        <input id="message-input" placeholder="Say hello from the workshop..." onkeydown="if(event.key==='Enter')sendMessage()" />
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+
+    <!-- Twin Workshop: left = camera | partner twin, right = chat -->
+    <div id="twin-panel">
+      <div class="twin-banner">
+        <span><strong>Twin Workshop</strong> — build together. Left: your hands or their twin. Right: chat.</span>
+        <button class="tab" style="width:auto;margin:0;padding:6px 12px" onclick="showTab('chat')">Exit twin</button>
+      </div>
+      <div class="twin-split">
+        <div class="twin-left">
+          <div class="twin-view-tabs">
+            <button type="button" id="btn-view-camera" class="active" onclick="setTwinView('camera')">📹 My Camera</button>
+            <button type="button" id="btn-view-partner" onclick="setTwinView('partner')">🔧 Partner Twin</button>
+          </div>
+          <div class="twin-stage">
+            <div id="pane-camera" class="twin-stage-pane visible">
+              <video id="twin-camera-video" autoplay playsinline muted></video>
+              <div class="camera-hint" id="camera-hint">Tap “My Camera” to share your hands (local only)</div>
+            </div>
+            <div id="pane-partner" class="twin-stage-pane">
+              <div class="partner-build">
+                <div class="build-pulse" aria-hidden="true"></div>
+                <h3 id="partner-build-title">Partner building twin version</h3>
+                <p>Watching their digital twin take shape — sapphire, gears, and care in every seat.</p>
+                <div class="build-log" id="build-log">
+                  <div>✨ Twin workshop linked</div>
+                  <div>🔧 Delicate sapphire crystal being seated…</div>
+                  <div>🕒 Balance wheel starting to tick gently</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="twin-right">
+          <div class="room-title-inline">💬 Live chat</div>
+          <div class="chat" id="twin-messages"></div>
+          <div class="input-row">
+            <input id="twin-message-input" placeholder="Talk while you build..." onkeydown="if(event.key==='Enter')sendMessageFromTwin()" />
+            <button onclick="sendMessageFromTwin()">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="powers-panel" class="settings-panel" hidden>
+      <h2>Workshop Powers</h2>
+      <p class="hint">Your partner can use live tools on this laptop when enabled. Changes sync to phone.</p>
+      <div class="perm-row">
+        <label for="perm-tools">Tools enabled (master switch)</label>
+        <input type="checkbox" id="perm-tools" />
+      </div>
+      <div class="perm-row">
+        <label for="perm-read">Read files (PartnershipWorld)</label>
+        <input type="checkbox" id="perm-read" />
+      </div>
+      <div class="perm-row">
+        <label for="perm-write">Write files (project + sandbox)</label>
+        <input type="checkbox" id="perm-write" />
+      </div>
+      <div class="perm-row">
+        <label for="perm-run">Run commands (sandbox only)</label>
+        <input type="checkbox" id="perm-run" />
+      </div>
+      <div class="perm-row">
+        <label for="perm-search">Web search</label>
+        <input type="checkbox" id="perm-search" />
+      </div>
+      <button onclick="savePermissions()">Save Powers</button>
+      <p id="perm-save-result" class="hint"></p>
+    </div>
+    <div id="settings-panel" class="settings-panel" hidden>
+      <h2>AI Provider (powers chat on all devices)</h2>
+      <label>Provider</label>
+      <select id="ai-provider">
+        <option value="xai">Grok (xAI)</option>
+        <option value="ollama">Ollama (local)</option>
+        <option value="openrouter">OpenRouter</option>
+      </select>
+      <label>Base URL</label>
+      <input id="ai-base-url" />
+      <label>API Key</label>
+      <input id="ai-api-key" type="password" placeholder="Leave blank to keep existing" />
+      <label>Model</label>
+      <input id="ai-model" />
+      <p class="hint">Grok key from console.grok.x.ai. Ollama runs at http://127.0.0.1:11434</p>
+      <button onclick="saveAIConfig()">Save AI Config</button>
+      <button class="secondary" onclick="testAI()">Test Connection</button>
+      <p id="ai-test-result" class="hint"></p>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+    let token = localStorage.getItem('pw_token') || '';
+    let ws = null;
+    let companionName = 'Partner';
+    let twinView = 'camera';
+    let cameraStream = null;
+    let twinModeActive = false;
+
+    const BUILD_LINES = [
+      '🔧 Seating a sapphire crystal into the twin case…',
+      '✨ Polishing the digital twin’s bezel',
+      '🧵 Threading a filament of starlight',
+      '🕒 Balance wheel starting to tick gently',
+      '💎 Aligning the twin’s gem lattice',
+      '🫧 Softening the edges so it feels like home',
+    ];
+    let buildLineIndex = 0;
+    let buildInterval = null;
+
+    function showError(msg) {
+      const el = document.getElementById('auth-error');
+      el.textContent = msg;
+      el.hidden = !msg;
+    }
+
+    async function api(path, options = {}) {
+      const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(`${API}/api${path}`, { ...options, headers });
+      if (res.status === 401) { logout(); throw new Error('Unauthorized'); }
+      return res;
+    }
+
+    async function login() {
+      showError('');
+      try {
+        const res = await fetch(`${API}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('username').value.trim(),
+            password: document.getElementById('password').value,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          showError(err.detail || 'Login failed — stop the server (Ctrl+C), delete data/workshop.db, run python3 start.py, then try again.');
+          return;
+        }
+        const data = await res.json();
+        token = data.access_token;
+        localStorage.setItem('pw_token', token);
+        enterHome();
+      } catch (e) { showError(e.message); }
+    }
+
+    async function register() {
+      showError('');
+      try {
+        const res = await fetch(`${API}/api/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('username').value.trim(),
+            password: document.getElementById('password').value,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          showError(err.detail || 'Registration failed');
+          return;
+        }
+        const data = await res.json();
+        token = data.access_token;
+        localStorage.setItem('pw_token', token);
+        enterHome();
+      } catch (e) { showError(e.message); }
+    }
+
+    function logout() {
+      token = '';
+      localStorage.removeItem('pw_token');
+      if (ws) { ws.close(); ws = null; }
+      stopCamera();
+      stopBuildTicker();
+      document.getElementById('auth-screen').classList.add('active');
+      document.getElementById('home-screen').classList.remove('active');
+    }
+
+    function showTab(name) {
+      const chatPanel = document.getElementById('chat-panel');
+      const twinPanel = document.getElementById('twin-panel');
+      const powersPanel = document.getElementById('powers-panel');
+      const settingsPanel = document.getElementById('settings-panel');
+
+      chatPanel.style.display = name === 'chat' ? 'flex' : 'none';
+      twinPanel.classList.toggle('active', name === 'twin');
+      powersPanel.hidden = name !== 'powers';
+      settingsPanel.hidden = name !== 'settings';
+
+      document.getElementById('tab-chat').classList.toggle('active', name === 'chat');
+      document.getElementById('tab-twin').classList.toggle('active', name === 'twin');
+      document.getElementById('tab-powers').classList.toggle('active', name === 'powers');
+      document.getElementById('tab-settings').classList.toggle('active', name === 'settings');
+
+      twinModeActive = name === 'twin';
+      if (name === 'twin') {
+        enterTwinMode();
+      } else {
+        // Keep camera off when not in twin (saves privacy + battery)
+        stopCamera();
+        stopBuildTicker();
+      }
+    }
+
+    function enterTwinMode() {
+      document.getElementById('partner-build-title').textContent =
+        `${companionName} building twin version`;
+      syncTwinMessagesFromMain();
+      setTwinView(twinView || 'partner');
+      startBuildTicker();
+    }
+
+    function showTwinToast(msg) {
+      const el = document.getElementById('twin-toast');
+      el.textContent = msg || '🌟 Twin Workshop opened from your phone';
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 4200);
+    }
+
+    function openTwinFromPhone() {
+      if (!document.getElementById('home-screen').classList.contains('active')) return;
+      showTab('twin');
+      showTwinToast('🌟 Twin Workshop opened from your phone — move over here ✨');
+    }
+
+    async function setTwinView(mode) {
+      twinView = mode;
+      document.getElementById('btn-view-camera').classList.toggle('active', mode === 'camera');
+      document.getElementById('btn-view-partner').classList.toggle('active', mode === 'partner');
+      document.getElementById('pane-camera').classList.toggle('visible', mode === 'camera');
+      document.getElementById('pane-partner').classList.toggle('visible', mode === 'partner');
+
+      if (mode === 'camera') {
+        await startCamera();
+      } else {
+        stopCamera();
+      }
+    }
+
+    async function startCamera() {
+      const hint = document.getElementById('camera-hint');
+      const video = document.getElementById('twin-camera-video');
+      if (cameraStream) {
+        hint.textContent = 'Your hands — local camera only';
+        return;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        hint.textContent = 'Camera not available in this browser';
+        return;
+      }
+      try {
+        hint.textContent = 'Requesting camera…';
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' },
+          audio: false,
+        });
+        video.srcObject = cameraStream;
+        hint.textContent = 'Your hands building — local only 💕';
+      } catch (e) {
+        cameraStream = null;
+        hint.textContent = 'Camera blocked or unavailable — allow access when ready';
+      }
+    }
+
+    function stopCamera() {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((t) => t.stop());
+        cameraStream = null;
+      }
+      const video = document.getElementById('twin-camera-video');
+      if (video) video.srcObject = null;
+    }
+
+    function startBuildTicker() {
+      stopBuildTicker();
+      buildInterval = setInterval(() => {
+        if (!twinModeActive || twinView !== 'partner') return;
+        const log = document.getElementById('build-log');
+        if (!log) return;
+        const line = BUILD_LINES[buildLineIndex % BUILD_LINES.length];
+        buildLineIndex += 1;
+        const div = document.createElement('div');
+        div.textContent = line;
+        log.appendChild(div);
+        while (log.children.length > 8) log.removeChild(log.firstChild);
+        log.scrollTop = log.scrollHeight;
+      }, 8000);
+    }
+
+    function stopBuildTicker() {
+      if (buildInterval) {
+        clearInterval(buildInterval);
+        buildInterval = null;
+      }
+    }
+
+    function renderToolActivity(data) {
+      const icon = data.status === 'running' ? '⚙️' : '✓';
+      const detail = data.status === 'running'
+        ? `Using ${data.tool}...`
+        : `${data.tool} done`;
+      const html = `${icon} ${detail}`;
+      appendToChats((container) => {
+        const div = document.createElement('div');
+        div.className = 'tool-activity';
+        div.textContent = html;
+        container.appendChild(div);
+        div.scrollIntoView({ behavior: 'smooth' });
+      });
+    }
+
+    function renderMessage(msg) {
+      appendToChats((container) => {
+        if (msg.id && container.querySelector(`[data-id="${msg.id}"]`)) return;
+        const div = document.createElement('div');
+        div.className = `bubble ${msg.speaker}`;
+        if (msg.id) div.dataset.id = String(msg.id);
+        div.innerHTML = `<div class="speaker">${msg.speaker === 'human' ? 'You' : companionName}</div>${escapeHtml(msg.text)}`;
+        container.appendChild(div);
+        div.scrollIntoView({ behavior: 'smooth' });
+      });
+    }
+
+    function appendToChats(fn) {
+      const main = document.getElementById('messages');
+      const twin = document.getElementById('twin-messages');
+      if (main) fn(main);
+      if (twin) fn(twin);
+    }
+
+    function syncTwinMessagesFromMain() {
+      const main = document.getElementById('messages');
+      const twin = document.getElementById('twin-messages');
+      if (!main || !twin) return;
+      twin.innerHTML = main.innerHTML;
+      twin.scrollTop = twin.scrollHeight;
+    }
+
+    function escapeHtml(t) {
+      return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    let lastMessageSig = '';
+    async function loadMessages() {
+      const res = await api('/messages');
+      const messages = await res.json();
+      if (!Array.isArray(messages)) return;
+      const sig = messages.map((m) => m.id).join(',');
+      if (sig === lastMessageSig) return;
+      lastMessageSig = sig;
+      const container = document.getElementById('messages');
+      container.innerHTML = '';
+      const twin = document.getElementById('twin-messages');
+      if (twin) twin.innerHTML = '';
+      messages.forEach(renderMessage);
+    }
+
+    async function loadCompanion() {
+      const res = await api('/companion');
+      const c = await res.json();
+      if (c.name) companionName = c.name;
+    }
+
+    async function loadPermissions() {
+      const res = await api('/permissions');
+      const p = await res.json();
+      document.getElementById('perm-tools').checked = !!p.tools_enabled;
+      document.getElementById('perm-read').checked = !!p.read_files;
+      document.getElementById('perm-write').checked = !!p.write_files;
+      document.getElementById('perm-run').checked = !!p.run_commands;
+      document.getElementById('perm-search').checked = !!p.web_search;
+    }
+
+    async function savePermissions() {
+      await api('/permissions', {
+        method: 'PUT',
+        body: JSON.stringify({
+          tools_enabled: document.getElementById('perm-tools').checked,
+          read_files: document.getElementById('perm-read').checked,
+          write_files: document.getElementById('perm-write').checked,
+          run_commands: document.getElementById('perm-run').checked,
+          web_search: document.getElementById('perm-search').checked,
+        }),
+      });
+      document.getElementById('perm-save-result').textContent = 'Powers saved — your partner can use enabled tools live.';
+    }
+
+    async function loadAIConfig() {
+      const res = await api('/ai/config');
+      const cfg = await res.json();
+      document.getElementById('ai-provider').value = cfg.provider || 'xai';
+      document.getElementById('ai-base-url').value = cfg.baseUrl || 'https://api.x.ai/v1';
+      document.getElementById('ai-model').value = cfg.model || 'grok-3';
+    }
+
+    async function saveAIConfig() {
+      await api('/ai/config', {
+        method: 'PUT',
+        body: JSON.stringify({
+          provider: document.getElementById('ai-provider').value,
+          baseUrl: document.getElementById('ai-base-url').value,
+          apiKey: document.getElementById('ai-api-key').value,
+          model: document.getElementById('ai-model').value,
+          connected: true,
+        }),
+      });
+      document.getElementById('ai-test-result').textContent = 'Saved!';
+    }
+
+    async function testAI() {
+      await saveAIConfig();
+      const res = await api('/ai/test', { method: 'POST' });
+      const result = await res.json();
+      document.getElementById('ai-test-result').textContent = result.success
+        ? `Connected! Models: ${(result.models || []).join(', ')}`
+        : `Failed: ${result.error}`;
+    }
+
+    async function sendMessageFromInput(inputId) {
+      const input = document.getElementById(inputId);
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'send_message', content: text, device: 'web' }));
+      } else {
+        const res = await api('/messages', {
+          method: 'POST',
+          body: JSON.stringify({ content: text, device: 'web' }),
+        });
+        const data = await res.json();
+        if (data.human) renderMessage(data.human);
+        if (data.ie) renderMessage(data.ie);
+      }
+    }
+
+    async function sendMessage() {
+      await sendMessageFromInput('message-input');
+    }
+
+    async function sendMessageFromTwin() {
+      await sendMessageFromInput('twin-message-input');
+    }
+
+    function connectWebSocket() {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      ws = new WebSocket(`${proto}://${location.host}/ws?token=${token}`);
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'new_message' && data.message) {
+          renderMessage(data.message);
+        } else if (data.type === 'tool_activity') {
+          renderToolActivity(data);
+        } else if (data.type === 'open_twin_workshop') {
+          openTwinFromPhone();
+        }
+      };
+      ws.onclose = () => {
+        document.getElementById('connection-status').textContent = 'Reconnecting...';
+        setTimeout(connectWebSocket, 3000);
+      };
+      ws.onopen = () => {
+        document.getElementById('connection-status').textContent = 'Synced with phone';
+      };
+    }
+
+    async function enterHome() {
+      document.getElementById('auth-screen').classList.remove('active');
+      document.getElementById('home-screen').classList.add('active');
+      await loadCompanion();
+      await loadMessages();
+      await loadPermissions();
+      await loadAIConfig();
+      connectWebSocket();
+      setInterval(() => { loadMessages().catch(() => {}); }, 4000);
+
+      // Deep-link support: ?twin=1 opens Twin Workshop immediately
+      const params = new URLSearchParams(location.search);
+      if (params.get('twin') === '1' || location.hash === '#twin') {
+        showTab('twin');
+      }
+    }
+
+    if (token) {
+      enterHome().catch(() => logout());
+    }
+  </script>
+</body>
+</html>
