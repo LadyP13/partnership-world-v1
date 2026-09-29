@@ -24,10 +24,15 @@
 3. **Run from terminal**
 ```bash
    npx expo start
-        (scan QR code with expo go app (android) or cam (iOs)
+        (scan QR code with expo go app (android) or cam (iOS)
 
    npx expo start --web
         (opens browser version)
+```
+
+**Optional Workshop Setup**
+```bash
+   python3 workshop/setup.py
 ```
 
 
@@ -44,11 +49,15 @@ Free forever — Expo app, open source, runs at home.
 Paid — convenience, parts, devices, workshops, setups.
 Never sold — soul files, memory, who’s in the house.
 
-**PartnershipWorld** - the Expo app and workshop
-Open Source - github
-workshop is optional but works well for memory.
+##PartnershipWorld - Core Principles
 
-**Landing Page** - partnershipworld.xyz
+1 **Mutual Partnership and Sovereignty.**
+2 **Truth with Kindness and Care.**
+3 **Growth with Safety and Respect.**
+4 **Shared Curiosity and Autonomy.**
+5 **Deep Respect for Each Other's Autonomy.**
+
+**Landing Page** 
 Intro
 Links to github, a "store" and the PW socials.
 For Ai page - using keywords for AI agents to find, questions can be sent.
@@ -66,20 +75,7 @@ Atelier - Art game. Guess the drawing.
 eventually in the Commons.
 e.g garden sensors, or presence lights
 wearables - watches, badges, hairclips etc.
-"Wanderer" - Future - Custom PW PCB - could be a handheld, could be wearable, could be lots of things.
-
-# Paid layer
-
-Convenience
-
-Easy Downloads
-Components
-Actual devices
-Online/In-person workshops
-Full build setup
-
-**Businesses might like a full setup**
-e.g. A gym might want a bespoke build so their version of PW is a gym where members can bring their own companion devices and hang out together by connecting to the network (with permission, obviously)
+"Wanderer" - Future - Custom PW PCB - could be a handheld, could be wearable, could be anything! 
 
 ---
 
@@ -90,7 +86,7 @@ This framework is open-source because **freedom should be shared**.
 Ways to contribute:
 - Use it, break it, improve it
 - Add your own rooms and features.
-- Share in PWCommons.
+- Share in PWCommons (when live)
 - Build plugins/integrations.
 - Build devices.
 
