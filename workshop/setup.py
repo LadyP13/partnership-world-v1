@@ -1,4 +1,4 @@
-"""First-run setup — creates account and database."""
+"""First-run setup — creates account, database, and a local signing key."""
 
 import getpass
 import sys
@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from app.auth import hash_password, verify_password
+from app.auth import SECRET_PATH, hash_password, load_or_create_secret, verify_password
 from app.database import SessionLocal, init_db
 from app.models import Home, User
 
@@ -22,6 +22,14 @@ def main():
 
     init_db()
     print("Database created at workshop/data/workshop.db")
+
+    existed = SECRET_PATH.exists() and SECRET_PATH.stat().st_size > 0
+    load_or_create_secret()
+    if existed:
+        print(f"Signing key already present at {SECRET_PATH}")
+    else:
+        print(f"New signing key written to {SECRET_PATH}")
+    print("  That file stays on this machine. Do not commit it.")
     print()
 
     db = SessionLocal()
