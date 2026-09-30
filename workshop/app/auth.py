@@ -1,7 +1,9 @@
 """Authentication utilities for PartnershipWorld Workshop."""
 
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Optional
+import secrets
 
 import bcrypt
 from fastapi import Depends, HTTPException, status
@@ -12,11 +14,32 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Home, User
 
-SECRET_KEY = "partnership-world-workshop-secret-change-in-production"
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_DAYS = 30
 
+# Lives next to the local database. Gitignored. Never commit this file.
+SECRET_PATH = Path(__file__).resolve().parent.parent / "data" / "jwt_secret"
+
 security = HTTPBearer(auto_error=False)
+
+
+def load_or_create_secret() -> str:
+    """One random key per machine. Created on first setup/start."""
+    SECRET_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if SECRET_PATH.exists():
+        key = SECRET_PATH.read_text(encoding="utf-8").strip()
+        if key:
+            return key
+    key = secrets.token_hex(32)
+    SECRET_PATH.write_text(key + "\n", encoding="utf-8")
+    try:
+        SECRET_PATH.chmod(0o600)
+    except OSError:
+        pass
+    return key
+
+
+SECRET_KEY = load_or_create_secret()
 
 
 def hash_password(password: str) -> str:
